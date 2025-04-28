@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Credit Card Churn Prediction</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 40px;
+            background-color: #f7f7f7;
+        }
+        form {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            max-width: 500px;
+            margin: auto;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        input, select {
+            width: 100%;
+            padding: 8px;
+            margin: 8px 0 16px 0;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px;
+            width: 100%;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        #result {
+            margin-top: 20px;
+            text-align: center;
+            font-size: 18px;
+        }
+    </style>
+</head>
+<body>
+
+<h2 style="text-align:center;">Credit Card Churn Predictor</h2>
+
+<!-- Dropdown to select preset customer -->
+<label for="presetSelection">Select a Preset Customer:</label>
+<select id="presetSelection">
+    <option value="">--Select a Preset--</option>
+    <option value="customer1">Customer 1</option>
+    <option value="customer2">Customer 2</option>
+    <option value="customer3">Customer 3</option>
+</select>
+
+<!-- Form for inputting customer data -->
+<form id="churnForm">
+    <label>Gender:</label>
+    <select name="Gender" required>
+        <option value="Male">Male</option>
+        <option value="Female">Female</option>
+    </select>
+
+    <label>Education Level:</label>
+    <select name="Education_Level" required>
+        <option value="High School">High School</option>
+        <option value="College">College</option>
+        <option value="Graduate">Graduate</option>
+        <option value="Post-Graduate">Post-Graduate</option>
+        <option value="Doctorate">Doctorate</option>
+        <option value="Unknown">Unknown</option>
+    </select>
+
+    <label>Income Category:</label>
+    <select name="Income_Category" required>
+        <option value="Less than $40K">Less than $40K</option>
+        <option value="$40K - $60K">$40K - $60K</option>
+        <option value="$60K - $80K">$60K - $80K</option>
+        <option value="$80K - $120K">$80K - $120K</option>
+        <option value="$120K+">$120K+</option>
+        <option value="Unknown">Unknown</option>
+    </select>
+
+    <label>Total Relationship Count:</label>
+    <input type="number" name="Total_Relationship_Count" step="1" required>
+
+    <label>Months Inactive (Last 12 Months):</label>
+    <input type="number" name="Months_Inactive_12_mon" step="1" required>
+
+    <label>Contacts in Last 12 Months:</label>
+    <input type="number" name="Contacts_Count_12_mon" step="1" required>
+
+    <label>Total Revolving Balance:</label>
+    <input type="number" name="Total_Revolving_Bal" step="1" required>
+
+    <label>Total Transaction Count:</label>
+    <input type="number" name="Total_Trans_Ct" step="1" required>
+
+    <button type="submit">Predict</button>
+</form>
+
+<div id="result"></div>
+
+<script>
+// Preset data for autofill
+const presetData = {
+    customer1: {
+        Gender: "Male",
+        Education_Level: "Graduate",
+        Income_Category: "$60K - $80K",
+        Total_Relationship_Count: 5,
+        Months_Inactive_12_mon: 1,
+        Contacts_Count_12_mon: 3,
+        Total_Revolving_Bal: 5000,
+        Total_Trans_Ct: 200
+    },
+    customer2: {
+        Gender: "Female",
+        Education_Level: "Post-Graduate",
+        Income_Category: "$120K+",
+        Total_Relationship_Count: 10,
+        Months_Inactive_12_mon: 0,
+        Contacts_Count_12_mon: 5,
+        Total_Revolving_Bal: 15000,
+        Total_Trans_Ct: 400
+    },
+    customer3: {
+        Gender: "Male",
+        Education_Level: "Post-Graduate",
+        Income_Category: "$60K - $80K",
+        Total_Relationship_Count: 5,
+        Months_Inactive_12_mon: 9,
+        Contacts_Count_12_mon: 5,
+        Total_Revolving_Bal: 100,
+        Total_Trans_Ct: 20
+    }
+};
+
+// Function to autofill the form when a preset is selected
+document.getElementById('presetSelection').addEventListener('change', function(e) {
+    const selectedPreset = e.target.value;
+    
+    // Autofill the form if a valid preset is selected
+    if (presetData[selectedPreset]) {
+        const data = presetData[selectedPreset];
+        Object.keys(data).forEach(key => {
+            const inputElement = document.querySelector(`[name=${key}]`);
+            if (inputElement) {
+                inputElement.value = data[key];
+            }
+        });
+    }
+});
+
+document.getElementById('churnForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    const data = Object.fromEntries(formData.entries());
+    
+    // Convert numeric fields
+    data.Total_Relationship_Count = Number(data.Total_Relationship_Count);
+    data.Months_Inactive_12_mon = Number(data.Months_Inactive_12_mon);
+    data.Contacts_Count_12_mon = Number(data.Contacts_Count_12_mon);
+    data.Total_Revolving_Bal = Number(data.Total_Revolving_Bal);
+    data.Total_Trans_Ct = Number(data.Total_Trans_Ct);
+
+    try {
+        const response = await fetch('http://localhost:8000/predict', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+
+        const result = await response.json();
+
+        document.getElementById('result').innerHTML = `
+            <p><strong>Prediction:</strong> ${result.prediction == 1 ? 'Will Churn' : 'Will Not Churn'}</p>
+            <p><strong>Churn Probability:</strong> ${(result.churn_probability * 100).toFixed(2)}%</p>
+        `;
+    } catch (error) {
+        console.error('Error:', error);
+        document.getElementById('result').innerHTML = `<p style="color:red;">Failed to get prediction. Server error?</p>`;
+    }
+});
+</script>
+
+</body>
+</html>
